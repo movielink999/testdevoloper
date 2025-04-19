@@ -222,6 +222,192 @@
 })();
 
 </script>
+
+<script>
+
+    (function() {
+    let devToolsOpen = false;
+    let warningDisplayed = false;
+    let countdownStarted = false;
+    let countdownTimer;
+    const countdownDuration = 5; // seconds before closing tab
+    
+    // Create warning element (hidden initially)
+    const warningElement = document.createElement('div');
+    warningElement.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: #ff3860;
+        color: white;
+        font-size: 18px;
+        padding: 15px;
+        text-align: center;
+        z-index: 99999;
+        font-family: Arial, sans-serif;
+        display: none;
+    `;
+    document.body.appendChild(warningElement);
+    
+    // Multiple detection methods combined for better coverage
+    function detectDevTools() {
+        // Method 1: Window size difference detection
+        const widthThreshold = window.outerWidth - window.innerWidth > 160;
+        const heightThreshold = window.outerHeight - window.innerHeight > 160;
+        
+        // Method 2: Check for Firebug
+        const isFirebugOpen = 
+            window.Firebug && 
+            window.Firebug.chrome && 
+            window.Firebug.chrome.isInitialized;
+            
+        // Method 3: debugger timing check
+        let debuggerCheck = false;
+        const start = new Date().getTime();
+        debugger;
+        const end = new Date().getTime();
+        if ((end - start) > 100) {
+            debuggerCheck = true;
+        }
+        
+        // Method 4: Console clear trick
+        let consoleOpen = false;
+        const element = new Image();
+        Object.defineProperty(element, 'id', {
+            get: function() {
+                consoleOpen = true;
+                return '';
+            }
+        });
+        console.log('%c', element);
+        console.clear();
+        
+        // Combined detection result
+        return widthThreshold || heightThreshold || isFirebugOpen || debuggerCheck || consoleOpen || devToolsOpen;
+    }
+    
+    // Start countdown and display warning
+    function startCountdown() {
+        if (countdownStarted) return;
+        
+        countdownStarted = true;
+        let secondsLeft = countdownDuration;
+        
+        warningElement.style.display = 'block';
+        warningElement.textContent = `Developer Tools detected! Page will close in ${secondsLeft} seconds.`;
+        
+        countdownTimer = setInterval(() => {
+            secondsLeft--;
+            warningElement.textContent = `Developer Tools detected! Page will close in ${secondsLeft} seconds.`;
+            
+            if (secondsLeft <= 0) {
+                // Close the tab or redirect
+                clearInterval(countdownTimer);
+                window.close(); // Attempt to close tab
+                
+                // Fallback if window.close() is blocked (common in modern browsers)
+                setTimeout(() => {
+                    // Redirect to blank page as fallback
+                    window.location.href = 'about:blank';
+                    // Alternative: redirect to custom error page
+                    // window.location.href = 'https://example.com/error';
+                    
+                    // Last resort: make page unusable
+                    document.body.innerHTML = '';
+                    document.body.style.backgroundColor = 'black';
+                }, 100);
+            }
+        }, 1000);
+    }
+    
+    // Check for DevTools continuously
+    function checkDevTools() {
+        if (detectDevTools()) {
+            devToolsOpen = true;
+            if (!warningDisplayed) {
+                warningDisplayed = true;
+                // Start countdown after detection
+                setTimeout(startCountdown, 1000);
+            }
+        } else {
+            devToolsOpen = false;
+            // If DevTools closed, reset warning
+            if (warningDisplayed) {
+                warningElement.style.display = 'none';
+                clearInterval(countdownTimer);
+                warningDisplayed = false;
+                countdownStarted = false;
+            }
+        }
+    }
+    
+    // Override console functions to detect usage
+    const originalConsole = {
+        log: console.log,
+        info: console.info,
+        warn: console.warn,
+        error: console.error,
+        debug: console.debug,
+        clear: console.clear
+    };
+    
+    // Replace console methods with detection
+    Object.keys(originalConsole).forEach(method => {
+        console[method] = function() {
+            devToolsOpen = true;
+            // Still allow logging but flag as detected
+            return originalConsole[method].apply(console, arguments);
+        };
+    });
+    
+    // Prevent keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Block all known DevTools shortcuts
+        if (
+            // F12
+            e.key === 'F12' || e.keyCode === 123 ||
+            // Ctrl+Shift+I / Cmd+Option+I
+            ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) ||
+            // Ctrl+Shift+J / Cmd+Option+J
+            ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) ||
+            // Ctrl+Shift+C / Cmd+Option+C
+            ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) ||
+            // Ctrl+U / Cmd+U (View Source)
+            ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.keyCode === 85))
+        ) {
+            e.preventDefault();
+            devToolsOpen = true;
+            return false;
+        }
+    }, true);
+    
+    // Block context menu (right click)
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Run detection frequently
+    setInterval(checkDevTools, 500);
+    
+    // Additional detection by watching for element selection
+    document.addEventListener('selectstart', function(e) {
+        // Optionally block text selection
+        // e.preventDefault();
+        // return false;
+    });
+    
+    // Add a warning message in page source when viewed
+    document.documentElement.innerHTML += "<!-- This page is protected against inspection. Unauthorized use of developer tools will result in immediate session termination. -->";
+    
+    // Hide console messages
+    console.clear();
+    
+})();
+
+    </script>
+    
     
 
 </body>
