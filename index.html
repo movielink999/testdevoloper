@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Page</title>
+</head>
+<body>
+    <h1>Content Here</h1>
+    <p>This page attempts to deter developer tools.</p>
+
+    <script>
+        // Attempt to disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            // Optional: Alert the user (can be annoying)
+            // alert("Right-click is disabled on this page.");
+        });
+
+        // Attempt to disable common DevTools keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // F12
+            if (e.key === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+            }
+            // Ctrl+Shift+I
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+                 e.preventDefault();
+            }
+            // Ctrl+Shift+J
+             if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+                 e.preventDefault();
+            }
+            // Ctrl+Shift+C
+            if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+                 e.preventDefault();
+            }
+            // Ctrl+U (View Source)
+             if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+                 e.preventDefault();
+            }
+             // Cmd+Option+I (Mac)
+            if (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+                 e.preventDefault();
+            }
+            // Cmd+Option+J (Mac)
+            if (e.metaKey && e.altKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+                 e.preventDefault();
+            }
+             // Cmd+Option+C (Mac)
+            if (e.metaKey && e.altKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+                 e.preventDefault();
+            }
+            // Cmd+U (View Source - Mac)
+             if (e.metaKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+                 e.preventDefault();
+            }
+        });
+
+        // Optional: Basic debugger check (very easily bypassed)
+        // This tries to detect if DevTools are opened by checking debugger timing.
+        // It's unreliable and can trigger falsely or be easily circumvented.
+        /*
+        (function() {
+            const threshold = 160; // Milliseconds threshold
+            let devtools_opened = false;
+            const check = () => {
+                const start = performance.now();
+                debugger; // This statement pauses execution if DevTools are open
+                const end = performance.now();
+                if (end - start > threshold) {
+                    devtools_opened = true;
+                    // Optional: You could try redirecting or showing a message,
+                    // but this is extremely disruptive and easy to stop.
+                    // console.log("Developer Tools detected!");
+                    // window.location = 'about:blank'; // Example action (very annoying)
+                }
+            };
+
+            // Run the check periodically (also resource-intensive)
+            // setInterval(check, 1000);
+
+            // You could also try triggering it once on load or specific events
+            // window.onload = check;
+        })();
+        */
+
+    </script>
+
+</body>
+</html>
