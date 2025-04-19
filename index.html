@@ -1,414 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
 </head>
 <body>
-    <h1>Content Here</h1>
-    <p>This page attempts to deter developer tools.</p>
-
     <script>
-        // Attempt to disable right-click context menu
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            // Optional: Alert the user (can be annoying)
-            // alert("Right-click is disabled on this page.");
-        });
-
-        // Attempt to disable common DevTools keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // F12
-            if (e.key === 'F12' || e.keyCode === 123) {
-                e.preventDefault();
-            }
-            // Ctrl+Shift+I
-            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
-                 e.preventDefault();
-            }
-            // Ctrl+Shift+J
-             if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
-                 e.preventDefault();
-            }
-            // Ctrl+Shift+C
-            if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
-                 e.preventDefault();
-            }
-            // Ctrl+U (View Source)
-             if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
-                 e.preventDefault();
-            }
-             // Cmd+Option+I (Mac)
-            if (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
-                 e.preventDefault();
-            }
-            // Cmd+Option+J (Mac)
-            if (e.metaKey && e.altKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
-                 e.preventDefault();
-            }
-             // Cmd+Option+C (Mac)
-            if (e.metaKey && e.altKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
-                 e.preventDefault();
-            }
-            // Cmd+U (View Source - Mac)
-             if (e.metaKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
-                 e.preventDefault();
-            }
-        });
-
-        // Optional: Basic debugger check (very easily bypassed)
-        // This tries to detect if DevTools are opened by checking debugger timing.
-        // It's unreliable and can trigger falsely or be easily circumvented.
-        /*
         (function() {
-            const threshold = 160; // Milliseconds threshold
-            let devtools_opened = false;
-            const check = () => {
-                const start = performance.now();
-                debugger; // This statement pauses execution if DevTools are open
-                const end = performance.now();
-                if (end - start > threshold) {
-                    devtools_opened = true;
-                    // Optional: You could try redirecting or showing a message,
-                    // but this is extremely disruptive and easy to stop.
-                    // console.log("Developer Tools detected!");
-                    // window.location = 'about:blank'; // Example action (very annoying)
+            const config = {
+                countdownTime: 5,
+                redirectURL: "https://educationalhelper838.blogspot.com/",
+                sizeThreshold: 160,
+                protections: {
+                    preventKeyboardShortcuts: true,
+                    preventRightClick: false,
+                    preventSelection: false,
+                    hideConsoleOutput: true
                 }
             };
 
-            // Run the check periodically (also resource-intensive)
-            // setInterval(check, 1000);
+            let devToolsDetected = false;
+            let countdownActive = false;
+            let countdownValue = config.countdownTime;
+            let countdownInterval = null;
 
-            // You could also try triggering it once on load or specific events
-            // window.onload = check;
+            // Enhanced size detection with resize listener
+            function detectBySize() {
+                const widthDiff = Math.abs(window.outerWidth - window.innerWidth);
+                const heightDiff = Math.abs(window.outerHeight - window.innerHeight);
+                return widthDiff > config.sizeThreshold || heightDiff > config.sizeThreshold;
+            }
+
+            // New console detection method
+            let consoleOpen = false;
+            const element = new Image();
+            Object.defineProperty(element, 'id', {
+                get: function() {
+                    consoleOpen = true;
+                }
+            });
+
+            function detectConsole() {
+                consoleOpen = false;
+                console.log(element);
+                return consoleOpen;
+            }
+
+            function checkDevTools() {
+                return detectBySize() || detectConsole();
+            }
+
+            // Real-time detection through resize events
+            window.addEventListener('resize', function() {
+                if (!devToolsDetected && checkDevTools()) {
+                    triggerProtection();
+                }
+            });
+
+            function triggerProtection() {
+                devToolsDetected = true;
+                startCountdown();
+            }
+
+            function replacePageContent() {
+                document.title = "Access Denied - Developer Tools Detected";
+                document.body.innerHTML = `
+                    <style>
+                        /* Keep existing styles */
+                    </style>
+                    <div class="warning-container">
+                        <h1>Developer Tools Detected</h1>
+                        <p>For security reasons, this website does not allow the use of developer tools.</p>
+                        <div class="countdown" id="countdown">${countdownValue}</div>
+                        <p>This page will close automatically.</p>
+                        <button class="cancel-btn" id="cancelBtn">Cancel (False Positive)</button>
+                        <div class="message">
+                            <p>If you believe this is an error, please click the Cancel button above.</p>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('cancelBtn').addEventListener('click', function() {
+                    clearInterval(countdownInterval);
+                    countdownActive = false;
+                    devToolsDetected = false;
+                    window.location.reload();
+                });
+            }
+
+            function startCountdown() {
+                if (countdownActive) return;
+                countdownActive = true;
+                replacePageContent();
+
+                countdownInterval = setInterval(() => {
+                    countdownValue--;
+                    document.getElementById('countdown').textContent = countdownValue;
+                    if (countdownValue <= 0) {
+                        window.location.href = config.redirectURL;
+                    }
+                }, 1000);
+            }
+
+            // Enhanced keyboard shortcut blocking
+            if (config.protections.preventKeyboardShortcuts) {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'F12' || e.keyCode === 123 || 
+                       (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase()))) {
+                        e.preventDefault();
+                        triggerProtection();
+                    }
+                }, true);
+            }
+
+            // Active monitoring with improved detection
+            setInterval(() => {
+                if (!devToolsDetected && checkDevTools()) {
+                    triggerProtection();
+                }
+            }, 1000);
+
+            // Console protection
+            if (config.protections.hideConsoleOutput) {
+                const originalConsole = console.log;
+                console.log = function() {
+                    if (detectConsole()) triggerProtection();
+                    return originalConsole.apply(this, arguments);
+                };
+            }
         })();
-        */
-
     </script>
-
-<script>
-
-    (function() {
-    // Method 1: Detect DevTools by window size change
-    const devtools = {
-        isOpen: false,
-        orientation: null
-    };
-    
-    const threshold = 160;
-    
-    // Function to check if DevTools is open
-    const checkDevTools = () => {
-        const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-        const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-        
-        if (
-            !(heightThreshold && widthThreshold) && 
-            ((window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) || 
-             widthThreshold || 
-             heightThreshold)
-        ) {
-            if (!devtools.isOpen || devtools.orientation !== (widthThreshold ? 'vertical' : 'horizontal')) {
-                devtools.isOpen = true;
-                devtools.orientation = widthThreshold ? 'vertical' : 'horizontal';
-                redirectOrAlert();
-            }
-        } else {
-            if (devtools.isOpen) {
-                devtools.isOpen = false;
-                devtools.orientation = null;
-            }
-        }
-    };
-    
-    // Method 2: Detect DevTools using console tricks
-    const devToolsDetector = () => {
-        // Clear console to make detection harder to spot
-        console.clear();
-        
-        // Check if debugger is attached
-        let devToolsOpen = false;
-        
-        // Console timing trick
-        const before = new Date().getTime();
-        debugger;
-        const after = new Date().getTime();
-        if ((after - before) > 100) {
-            devToolsOpen = true;
-            redirectOrAlert();
-        }
-        
-        // Console clear trick
-        const div = document.createElement('div');
-        Object.defineProperty(div, 'id', {
-            get: function() {
-                devToolsOpen = true;
-                redirectOrAlert();
-                return 'id';
-            }
-        });
-        console.log(div);
-        console.clear();
-    };
-    
-    // Method 3: Disable right-click context menu
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        return false;
-    });
-    
-    // Method 4: Disable keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        // F12 key
-        if (e.key === 'F12' || e.keyCode === 123) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Ctrl+Shift+I / Cmd+Option+I
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Ctrl+Shift+J / Cmd+Option+J
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Ctrl+Shift+C / Cmd+Option+C
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Ctrl+U / Cmd+U (View Source)
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.keyCode === 85)) {
-            e.preventDefault();
-            return false;
-        }
-    });
-    
-    // Function to handle when DevTools is detected
-    function redirectOrAlert() {
-        // Option 1: Show warning
-        alert("Developer tools detected! This action has been logged.");
-        
-        // Option 2: Redirect to another page
-        // window.location.href = "https://example.com/no-inspect";
-        
-        // Option 3: Refresh the page
-        // window.location.reload();
-    }
-    
-    // Set interval to continuously check
-    setInterval(checkDevTools, 1000);
-    setInterval(devToolsDetector, 2000);
-    
-    // Method 5: Mess with console output
-    const originalConsoleLog = console.log;
-    console.log = function() {
-        // You can leave this empty to disable console.log
-        // Or add decoy messages
-        originalConsoleLog("Security monitoring active. This action has been logged.");
-        // Or don't pass through the original arguments to hide them
-    };
-    
-    // Method 6: Disable selecting text
-    document.addEventListener('selectstart', function(e) {
-        e.preventDefault();
-        return false;
-    });
-})();
-
-</script>
-
-<script>
-
-    (function() {
-    let devToolsOpen = false;
-    let warningDisplayed = false;
-    let countdownStarted = false;
-    let countdownTimer;
-    const countdownDuration = 5; // seconds before closing tab
-    
-    // Create warning element (hidden initially)
-    const warningElement = document.createElement('div');
-    warningElement.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background-color: #ff3860;
-        color: white;
-        font-size: 18px;
-        padding: 15px;
-        text-align: center;
-        z-index: 99999;
-        font-family: Arial, sans-serif;
-        display: none;
-    `;
-    document.body.appendChild(warningElement);
-    
-    // Multiple detection methods combined for better coverage
-    function detectDevTools() {
-        // Method 1: Window size difference detection
-        const widthThreshold = window.outerWidth - window.innerWidth > 160;
-        const heightThreshold = window.outerHeight - window.innerHeight > 160;
-        
-        // Method 2: Check for Firebug
-        const isFirebugOpen = 
-            window.Firebug && 
-            window.Firebug.chrome && 
-            window.Firebug.chrome.isInitialized;
-            
-        // Method 3: debugger timing check
-        let debuggerCheck = false;
-        const start = new Date().getTime();
-        debugger;
-        const end = new Date().getTime();
-        if ((end - start) > 100) {
-            debuggerCheck = true;
-        }
-        
-        // Method 4: Console clear trick
-        let consoleOpen = false;
-        const element = new Image();
-        Object.defineProperty(element, 'id', {
-            get: function() {
-                consoleOpen = true;
-                return '';
-            }
-        });
-        console.log('%c', element);
-        console.clear();
-        
-        // Combined detection result
-        return widthThreshold || heightThreshold || isFirebugOpen || debuggerCheck || consoleOpen || devToolsOpen;
-    }
-    
-    // Start countdown and display warning
-    function startCountdown() {
-        if (countdownStarted) return;
-        
-        countdownStarted = true;
-        let secondsLeft = countdownDuration;
-        
-        warningElement.style.display = 'block';
-        warningElement.textContent = `Developer Tools detected! Page will close in ${secondsLeft} seconds.`;
-        
-        countdownTimer = setInterval(() => {
-            secondsLeft--;
-            warningElement.textContent = `Developer Tools detected! Page will close in ${secondsLeft} seconds.`;
-            
-            if (secondsLeft <= 0) {
-                // Close the tab or redirect
-                clearInterval(countdownTimer);
-                window.close(); // Attempt to close tab
-                
-                // Fallback if window.close() is blocked (common in modern browsers)
-                setTimeout(() => {
-                    // Redirect to blank page as fallback
-                    window.location.href = 'about:blank';
-                    // Alternative: redirect to custom error page
-                    // window.location.href = 'https://example.com/error';
-                    
-                    // Last resort: make page unusable
-                    document.body.innerHTML = '';
-                    document.body.style.backgroundColor = 'black';
-                }, 100);
-            }
-        }, 1000);
-    }
-    
-    // Check for DevTools continuously
-    function checkDevTools() {
-        if (detectDevTools()) {
-            devToolsOpen = true;
-            if (!warningDisplayed) {
-                warningDisplayed = true;
-                // Start countdown after detection
-                setTimeout(startCountdown, 1000);
-            }
-        } else {
-            devToolsOpen = false;
-            // If DevTools closed, reset warning
-            if (warningDisplayed) {
-                warningElement.style.display = 'none';
-                clearInterval(countdownTimer);
-                warningDisplayed = false;
-                countdownStarted = false;
-            }
-        }
-    }
-    
-    // Override console functions to detect usage
-    const originalConsole = {
-        log: console.log,
-        info: console.info,
-        warn: console.warn,
-        error: console.error,
-        debug: console.debug,
-        clear: console.clear
-    };
-    
-    // Replace console methods with detection
-    Object.keys(originalConsole).forEach(method => {
-        console[method] = function() {
-            devToolsOpen = true;
-            // Still allow logging but flag as detected
-            return originalConsole[method].apply(console, arguments);
-        };
-    });
-    
-    // Prevent keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        // Block all known DevTools shortcuts
-        if (
-            // F12
-            e.key === 'F12' || e.keyCode === 123 ||
-            // Ctrl+Shift+I / Cmd+Option+I
-            ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) ||
-            // Ctrl+Shift+J / Cmd+Option+J
-            ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) ||
-            // Ctrl+Shift+C / Cmd+Option+C
-            ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) ||
-            // Ctrl+U / Cmd+U (View Source)
-            ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.keyCode === 85))
-        ) {
-            e.preventDefault();
-            devToolsOpen = true;
-            return false;
-        }
-    }, true);
-    
-    // Block context menu (right click)
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        return false;
-    });
-    
-    // Run detection frequently
-    setInterval(checkDevTools, 500);
-    
-    // Additional detection by watching for element selection
-    document.addEventListener('selectstart', function(e) {
-        // Optionally block text selection
-        // e.preventDefault();
-        // return false;
-    });
-    
-    // Add a warning message in page source when viewed
-    document.documentElement.innerHTML += "<!-- This page is protected against inspection. Unauthorized use of developer tools will result in immediate session termination. -->";
-    
-    // Hide console messages
-    console.clear();
-    
-})();
-
-    </script>
-    
-    
-
 </body>
 </html>
